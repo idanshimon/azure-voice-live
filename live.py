@@ -51,6 +51,7 @@ if not RES or not RG:
 EP = f"https://{RES}.cognitiveservices.azure.com"
 CONSENT_ID = f"{PROJECT}-consent"
 VOICE_ID = f"{PROJECT}-personal"
+CACHE = ".prompt.wav"   # cached enrollment audio, so a 403 never costs you a re-record
 
 
 def sh(c):
@@ -107,7 +108,15 @@ def post_mgmt(path, body, ctype):
         with urllib.request.urlopen(req) as r:
             return json.loads(r.read())
     except urllib.error.HTTPError as e:
-        sys.exit(f"\nHTTP {e.code} from {path}:\n{e.read().decode()[:1500]}\n")
+        body = e.read().decode()
+        if e.code == 403 and "personal voice" in body:
+            sys.exit("\nHTTP 403 — personal voice is not enabled on this subscription yet.\n"
+                     "This is an entitlement flag, not a bug: consent works, reads work, "
+                     "only creation is blocked.\nApply at https://aka.ms/customneural "
+                     "(approval is typically a few business days).\n"
+                     f"Your recording is cached at {CACHE} — rerun enroll once approved "
+                     "and it uploads without re-recording.\n")
+        sys.exit(f"\nHTTP {e.code} from {path}:\n{body[:1500]}\n")
 
 
 def put_json(path, obj):
@@ -164,9 +173,15 @@ def enroll():
 
     print("\nSTEP 2/2 — voice prompt (60s). This defines what the clone sounds like.")
     print("Speak naturally and continuously. Any language, any content. Quiet room.\n")
-    input("Enter to record prompt...")
-    wav = rec(60)
-    print(f"  captured {len(wav)/1024:.0f} KB -> streaming to Azure")
+    if os.path.exists(CACHE) and "--rerecord" not in sys.argv:
+        wav = open(CACHE, "rb").read()
+        print(f"  reusing cached prompt ({len(wav)/1024:.0f} KB) from {CACHE}")
+        print("  (pass --rerecord to capture a fresh one)")
+    else:
+        input("Enter to record prompt...")
+        wav = rec(60)
+        open(CACHE, "wb").write(wav)   # keep it: a failed API call must not cost a re-record
+        print(f"  captured {len(wav)/1024:.0f} KB -> cached at {CACHE} -> streaming to Azure")
     body, ct = multipart({"projectId": PROJECT, "consentId": CONSENT_ID}, wav)
     post_mgmt(f"/customvoice/personalvoices/{VOICE_ID}", body, ct)
     d = poll(f"/customvoice/personalvoices/{VOICE_ID}")

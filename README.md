@@ -123,12 +123,31 @@ message — this code prints it instead of swallowing it.
 | Input          | one clip, 5–90s         | 300+ utterances + transcripts       |
 | Training       | seconds                 | ~10 compute hours, paid             |
 | Output         | `speakerProfileId`      | a deployed endpoint                 |
-| Access         | open on any S0 resource | Limited Access intake form required |
+| Access         | Limited Access form     | Limited Access form                 |
 | Exportable     | no                      | no                                  |
 
-This repo does personal voice. It's open on a standard S0 resource, instant,
-and the quality with `DragonLatestNeural` is strong. Reach for Pro only if you
-need a specific brand style or the HD conversational engine.
+This repo does personal voice. Enrollment is instant and the quality with
+`DragonLatestNeural` is strong. Reach for Pro only if you need a specific brand
+style or the HD conversational engine.
+
+### You need approval first
+
+Both tiers are Limited Access. Apply at <https://aka.ms/customneural>.
+
+The gate is not where you'd expect, so don't assume you're approved because an
+early call succeeds:
+
+| Call                            | Before approval |
+| ------------------------------- | --------------- |
+| `PUT /projects`                 | 201 works       |
+| `POST /consents` (upload+verify)| 201, verifies   |
+| any `GET` (list/read)           | 200 works       |
+| `POST /personalvoices`          | **403**         |
+
+Only *creating the voice* is blocked. Everything leading up to it succeeds,
+which makes it easy to believe you have access until the last step. `enroll`
+caches your recording to `.prompt.wav` for exactly this reason — a 403 costs you
+a retry, not another 60 seconds of talking.
 
 ## Using the voice from another service
 

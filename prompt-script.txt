@@ -1,0 +1,18 @@
+Most of my week is spent in front of customers, not in front of a slide deck.
+I work with healthcare organizations, and they always ask me the same question.
+Can this actually run in production, or is it only a demo?
+
+That is a fair question. So I build the thing.
+I would rather show a working system than describe one.
+
+What surprises people is how much of the work is not the model at all.
+It is the integration. Identity, data boundaries, who is allowed to see what.
+The interesting part is never the part that looks interesting.
+
+Do I get it right the first time? Almost never.
+I ship something small, I watch where it breaks, and I fix it.
+Then I do that again.
+
+I like this work because the feedback is honest.
+The code runs, or it does not. The customer trusts it, or they do not.
+There is not much room to argue with that.
