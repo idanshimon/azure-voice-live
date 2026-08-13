@@ -49,8 +49,8 @@ if not RES or not RG:
     sys.exit("Set SPEECH_RESOURCE and SPEECH_RESOURCE_GROUP in .env (copy .env.example).")
 
 EP = f"https://{RES}.cognitiveservices.azure.com"
-CONSENT_ID = f"{PROJECT}-consent"
-VOICE_ID = f"{PROJECT}-personal"
+CONSENT_ID = os.environ.get("CONSENT_ID", f"{PROJECT}-consent")
+VOICE_ID = os.environ.get("VOICE_ID", f"{PROJECT}-personal")
 CACHE = ".prompt.wav"   # cached enrollment audio, so a 403 never costs you a re-record
 
 
@@ -154,6 +154,21 @@ def enroll():
     put_json(f"/customvoice/projects/{PROJECT}",
              {"description": "personal voice", "kind": "PersonalVoice"})
 
+    try:
+        existing = get_mgmt(f"/customvoice/consents/{CONSENT_ID}")
+    except Exception:
+        existing = {}
+    if existing.get("status") == "Succeeded" and "--reconsent" not in sys.argv:
+        print(f"\nSTEP 1/2 — consent already Succeeded in Azure "
+              f"({CONSENT_ID}, {existing.get('createdDateTime','')[:10]}). Skipping.")
+        print("  (pass --reconsent to record it again)")
+    else:
+        do_consent()
+
+    prompt_step()
+
+
+def do_consent():
     print("\nSTEP 1/2 — consent. Read this EXACTLY, in English (20s).")
     print("Azure speech-matches your audio against this script; a paraphrase fails.\n")
     print(f'  "I {TALENT} am aware that recordings of my voice will be used by')
@@ -171,6 +186,7 @@ def enroll():
         print("AudioAndScriptNotMatch just means re-read it more carefully. Nothing is broken.")
         sys.exit(1)
 
+def prompt_step():
     print("\nSTEP 2/2 — voice prompt (60s). This defines what the clone sounds like.")
     print("Speak naturally and continuously. Any language, any content. Quiet room.\n")
     if os.path.exists(CACHE) and "--rerecord" not in sys.argv:
